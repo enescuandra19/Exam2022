@@ -148,7 +148,8 @@
             return ui
         }
 
-        const SERVER = "http://localhost:8080"
+        // get the server both locally and remotely
+        const SERVER = `${window.location.protocol}//${window.location.hostname}:${window.location.port}`
 
         const handleView = async () => {
 
