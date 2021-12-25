@@ -289,6 +289,6 @@ app.delete("books/:bid/chapters/:cid", async (req, res) => {
 });
 
 // access the port from the .env file
-app.listen(process.env.PORT, () => {
+app.listen(process.env.PORT, async () => {
   await sequelize.sync({ alter: true });
 });
