@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Handlebars js templating library CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
+
+    <script type="text/javascript">
+
+        // -> "each" helper that does iteration (on the model array, which we have passed when calling booksView)
+        // -> we use "this" to access the current element
+        const booksView = Handlebars.compile(`
+            <h1>List of books</h1>
+
+            <table>
+                {{#each model}}
+                    <tr>
+
+                        <td>{{this.title}}</td>
+                        <td>{{this.content}}</td>
+                        
+                        <td>
+                            <input type="button" value="delete" data-id={{this.id}} class="delete"/>
+                        </td>
+
+                        <td>
+                            <input type="button" value="edit" data-id={{this.id}} class="edit" />
+                        </td>
+
+                    </tr>
+                {{/each}}
+            </table>
+
+            <input type="button" value="add" id="addButton" />
+        `)
+
+        const addBookView = Handlebars.compile(`
+            <h1>Add a book</h1>
+            <div>
+                <input type="text" id="title" />
+            </div>
+
+            <div>
+                <input type="text" id="content" />
+            </div>
+
+            <div>
+                <input type="button" value="add" id="addBookButton" />
+            </div>
+
+        `)
+
+        const editBookView = Handlebars.compile(`
+            <h1>Edit a book</h1>
+            <div>
+                <input type="text" id="title" />
+            </div>
+
+            <div>
+                <input type="text" id="content" />
+            </div>
+
+            <div>
+                <input type="button" value="edit" id="editBookButton" />
+            </div>
+
+        `)
+
+        // here we keep global state (not recommended)
+        let data = []
+
+        const loadAll = async () => {
+            // this is the get request for /books from the server
+            const response = await fetch(`${SERVER}/books`)
+
+            if (!response.ok) {
+                throw response
+            }
+
+            // extract the response as json format
+            const data = await response.json()
+
+            return data
+        }
+
+        const addOneBook = async (book) => {
+
+            // create a post request to localhost:8080/books
+            const response = await fetch(`${SERVER}/books`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                // turn the book into a JSON object
+                body: JSON.stringify(book)
+            })
+
+            if (!response.ok) {
+                throw response
+            }
+        }
+
+        const deleteOneBook = async (id) => {
+            const response = await fetch(`${SERVER}/books/${id}`, {
+                method: "DELETE"
+            })
+
+            if (!response.ok) {
+                throw response
+            }
+        }
+
+        const loadOneBook = async (id) => {
+            const response = await fetch(`${SERVER}/books/${id}`)
+
+            if (!response.ok) {
+                throw response
+            }
+
+            const data = await response.json();
+
+            return data;
+        }
+
+
+        const saveOneBook = async (id, book) => {
+            const response = await fetch(`${SERVER}/books/${id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(book)
+            })
+        }
+
+        // draw a view (produce its HTML and put it in the UI container)
+        const render = (view, model) => {
+            const ui = document.getElementById("ui")
+
+            const rendered = view({ model })
+
+            ui.innerHTML = rendered
+
+            return ui
+        }
+
+        const SERVER = "http://localhost:8080"
+
+        const handleView = async () => {
+
+            // get the view (identified by what is after #)
+            const viewDefinition = getView(window.location.hash)
+
+            // if viewDefinition contains onEnter
+            if (viewDefinition.onEnter) {
+                // run onEnter
+                await viewDefinition.onEnter()
+            }
+
+            // data = await loadAll()
+            const ui = render(viewDefinition.view, data)
+
+            // if viewDefinition contains onRendered
+            if (viewDefinition.onRendered) {
+                // run onRendered
+                await viewDefinition.onRendered(ui)
+            }
+        }
+
+        const getView = (hash) => {
+            const mappings = {
+                // " ^ " => the start of a string
+                // " $ " => the end of a string 
+                // -> here we have the normal link (localhost:serverPort)
+                '^$': {
+                    view: booksView,
+
+                    // -> this happens before the view is rendered
+                    // here we get the data
+                    onEnter: async () => {
+                        data = await loadAll();
+                    },
+
+                    // -> this happens after the view is rendered
+                    // here we can add handlers
+                    // -> when we run onRendered, select the ui's element with an id "addButton" and add onclick to it
+                    onRendered: (ui) => {
+                        ui.querySelector("#addButton").onclick = () => {
+
+                            // go to the location of the server -> localhost:8080/#/add-book
+                            window.location = `${SERVER}/#/add-book`
+                        }
+
+                        ui.querySelectorAll(".delete").forEach((e) => {
+                            e.onclick = async (evt) => {
+                                const id = evt.target.getAttribute("data-id")
+
+
+                                // delete the book
+                                await deleteOneBook(id)
+
+                                // reload the view by going to the root
+                                window.location = `${SERVER}/`
+                            }
+                        })
+
+                        ui.querySelectorAll(".edit").forEach((e) => {
+                            e.onclick = async (evt) => {
+                                const id = evt.target.getAttribute("data-id")
+
+                                window.location = `${SERVER}/#/books/${id}`
+                            }
+                        })
+                    }
+                },
+                // " $ " => this states that the string will stop at the end of the books word
+                '#/books$': {
+                    view: booksView,
+
+                    // on entering this page get all the available data from the backend
+                    onEnter: async () => {
+                        data = await loadAll();
+                    },
+
+                    onRendered: (ui) => {
+                        ui.querySelector("#addButton").onclick = () => {
+                            window.location = `${SERVER}/#/add-book`
+                        }
+
+                        ui.querySelectorAll(".delete").forEach((e) => {
+                            e.onclick = async (evt) => {
+                                const id = evt.target.getAttribute("data-id")
+
+
+                                // delete the book
+                                await deleteOneBook(id)
+
+                                // reload the view by going to the root
+                                window.location = `${SERVER}/`
+                            }
+                        })
+
+                        ui.querySelectorAll(".edit").forEach((e) => {
+                            e.onclick = async (evt) => {
+                                const id = evt.target.getAttribute("data-id")
+
+                                window.location = `${SERVER}/#/books/${id}`
+                            }
+                        })
+                    }
+                },
+
+                "#/add-book$": {
+                    view: addBookView,
+
+                    onRendered: (ui) => {
+                        const titleInput = ui.querySelector("#title")
+                        const contentInput = ui.querySelector("#content")
+
+                        // when clicking on the element with the id "#addBookButton"
+                        ui.querySelector("#addBookButton").onclick = async () => {
+                            // add a book
+                            await addOneBook({
+                                title: titleInput.value,
+                                content: contentInput.value
+                            })
+
+                            // then go back to localhost:8080/#/books
+                            window.location = `${SERVER}/#/books`
+                        }
+                    }
+                },
+
+                // -> /books/id
+                // -> the id will start with a digit between 1-9 and may continue with a digit from 0-9 and we don't know how many of them are (denoted by " * ")
+                "#/books/[1-9][0-9]*": {
+                    view: editBookView,
+
+                    onEnter: async () => {
+                        // get the last element of the URL after /
+                        const param = window.location.hash.split("/").pop()
+
+                        data = await loadOneBook(param);
+                    },
+
+                    onRendered: async (ui) => {
+
+                        const param = window.location.hash.split("/").pop()
+
+                        // get the title and content from data 
+                        const titleInput = ui.querySelector("#title")
+                        titleInput.value = data.title
+
+                        const contentInput = ui.querySelector("#content")
+                        contentInput.value = data.content
+
+                        // when clicking the button
+                        ui.querySelector("#editBookButton").onclick = async () => {
+                            await saveOneBook(param, {
+                                title: titleInput.value,
+                                content: contentInput.value
+                            })
+                            window.location = `${SERVER}/`
+                        }
+                    }
+                }
+            }
+
+            for (const mapping in mappings) {
+                // create a RegEx from the string mapping
+                const mappingRegex = new RegExp(mapping)
+
+                if (hash.match(mappingRegex)) {
+                    return mappings[mapping]
+                }
+            }
+        }
+
+        window.onload = handleView
+
+        // run this when the # values changes (when we navigate to something other than root)
+        window.onhashchange = handleView;
+
+    </script>
+
+    <title>A simple app</title>
+</head>
+
+<body>
+    <div id="ui"></div>
+</body>
+
+</html>
