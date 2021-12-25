@@ -61,17 +61,6 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use(express.json());
 
-// this will create our tables
-app.get("/sync", async (req, res) => {
-  try {
-    await sequelize.sync({ force: true });
-    res.status(201).json({ message: "tables created" });
-  } catch (err) {
-    console.warn(err);
-    res.status(500).json({ message: "some error occured" });
-  }
-});
-
 // get the book table
 app.get("/books", async (req, res) => {
   try {
@@ -299,6 +288,7 @@ app.delete("books/:bid/chapters/:cid", async (req, res) => {
   }
 });
 
-app.listen(serverPort, () => {
-  console.log("Server started on port " + serverPort);
+// access the port from the .env file
+app.listen(process.env.PORT, () => {
+  await sequelize.sync({ alter: true });
 });
