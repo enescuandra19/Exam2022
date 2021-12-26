@@ -162,7 +162,7 @@ app.delete("/books/:bid", async (req, res) => {
 });
 
 // get all the chapters of a particular book
-app.get("books/:bid/chapters", async (req, res) => {
+app.get("/books/:bid/chapters", async (req, res) => {
   try {
     // find the book that has the id specified in the path
     const book = await Book.findByPk(req.params.bid);
@@ -181,7 +181,7 @@ app.get("books/:bid/chapters", async (req, res) => {
 });
 
 // post chapters to a particular book
-app.post("books/:bid/chapters", async (req, res) => {
+app.post("/books/:bid/chapters", async (req, res) => {
   try {
     // find the book that has the id specified in the path
     const book = await Book.findByPk(req.params.bid);
@@ -203,7 +203,7 @@ app.post("books/:bid/chapters", async (req, res) => {
 });
 
 // get a particular chapter of a particular book
-app.get("books/:bid/chapters/:cid", async (req, res) => {
+app.get("/books/:bid/chapters/:cid", async (req, res) => {
   try {
     // find the book that has the id specified in the path
     const book = await Book.findByPk(req.params.bid);
@@ -231,7 +231,7 @@ app.get("books/:bid/chapters/:cid", async (req, res) => {
 });
 
 // update a chapter of a particular book
-app.put("books/:bid/chapters/:cid", async (req, res) => {
+app.put("/books/:bid/chapters/:cid", async (req, res) => {
   try {
     // find the book that has the id specified in the path
     const book = await Book.findByPk(req.params.bid);
@@ -260,7 +260,7 @@ app.put("books/:bid/chapters/:cid", async (req, res) => {
 });
 
 // delete a chapter of a particular book
-app.delete("books/:bid/chapters/:cid", async (req, res) => {
+app.delete("/books/:bid/chapters/:cid", async (req, res) => {
   try {
     // find the book that has the id specified in the path
     const book = await Book.findByPk(req.params.bid);
